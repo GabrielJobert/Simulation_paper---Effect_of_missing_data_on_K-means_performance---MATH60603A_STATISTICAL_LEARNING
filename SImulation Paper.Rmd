@@ -1,0 +1,260 @@
+---
+title: "Simulation Paper Statistical Learning"
+author: "Gabriel Jobert"
+date: "2023-11-05"
+output: html_document
+---
+
+```{r, echo=FALSE, results='hide'}
+library(MASS)
+library(caret)
+library(cluster)
+```
+
+# Description of the methods compared
+
+This study employs a Monte Carlo simulation approach to evaluate the impact of missing data on the performance and stability of the K-means clustering algorithm. The methods of data generation, missing data introduction, imputation, and clustering are described below.
+
+## K-means Clustering
+
+K-means is a partitioning method that divides data into $k$ non-overlapping subsets (clusters) without any cluster-internal structure. Points in the same cluster are as close as possible to each other while being as far as possible from points in other clusters. The algorithm iteratively assigns points to the nearest cluster centroid and re-calculates the centroids until a stopping criterion is met. The key steps of the algorithm are as follows:
+
+1.  **Initialization :** 3 initial centroids will be randomly selected from the data points.
+2.  **Assignment :** Each data point will be assigned to the closest centroid, forming 3 clusters.
+3.  **Update :** The centroids will be recaculated as the mean of all points assigned to the cluster.
+4.  **Convergence check :** The previous step will be repeated until the centroids do not change significantly or a maximum number of iterations is reached.
+
+The K-means algorithm will be implemented using the `stats.kmeans` function.
+
+## Data Generation
+
+The simulation begins with the generation of a synthetic dataset designed to mimic real-world data with inherent cluster structures. This dataset consists of 1500 observations, each with three features, and is divided into three true clusters. The features of the dataset are sampled from multivariate Gaussian distributions with predefined means and covariances, ensuring distinct and separable clusters.
+
+**Cluster Specifications:**
+
+-   Cluster 1: Mean = (0, 0, 0), Covariance Matrix = Diagonal with variances (1, 1, 1)
+
+-   Cluster 2: Mean = (5, 5, 5), Covariance Matrix = Diagonal with variances (1, 1, 1)
+
+-   Cluster 3: Mean = (10, 0, 0), Covariance Matrix = Diagonal with variances (1, 1, 1)
+
+These parameters are chosen to establish clear cluster separation, which serves as a baseline for evaluating the impact of missing data on clustering performance.
+
+## Data Missingness Mechanisms
+
+Missing data are introduced into the complete dataset at varying rates of 5%, 10%, 20%, and 40%, simulating a range of scenarios from minimal to substantial data loss. Each scenario is examined under three mechanisms of missingness: MCAR, MAR, and MNAR, to reflect different real-world situations of incomplete data.
+
+Three mechanisms are employed to introduce missing data into the complete datasets:
+
+-   **Completely at Random (MCAR) :** Missingness has no relationship with the data, meaning the likelihood of a data point being missing is the same across all observations.
+
+-   **At Random (MAR) :** The probability of missingness is related to observed data but not the missing data.
+
+-   **Not at Random (MNAR) :** The probability of missingness is related to the missing data itself.
+
+The `mice` package in R will be utilized to simulate these missingness mechanisms.
+
+## Imputation techniques
+
+For each dataset with missing values, the missing data are imputed using three techniques: mean, median, and KNN imputation. These methods represent simple to more complex approaches to handling missing data. After imputation, the K-means algorithm is applied to the imputed datasets with the number of clusters set to three, matching the true number of clusters.
+
+-   **Mean imputation :** Each missing value in a feature is imputed using the mean of the observed values in that feature.
+
+-   **Median imputation :** Each missing value in a feature is imputed using the median of the observed values in that feature.
+
+-   **KNN imputation :** The missing values are imputed using the values of the nearest neighbors found in the feature space. The proximity of different observations is calculated using a distance metric, typically Euclidean distance.
+
+## Measurement of Performance and stability
+
+Each imputed and clustered dataset is evaluated using the following metrics:
+
+-   **Adjusted Rand Index (ARI)**: A measure of the similarity between the true labels and the predicted labels, adjusted for chance.
+
+-   **Normalized Mutual Information (NMI)**: A score that quantifies the amount of information obtained about one cluster through observing the other cluster.
+
+-   **Silhouette Score**: A metric that assesses the consistency within clusters of data.
+
+These performance metrics are calculated for each repetition of the simulation to assess the impact of missing data and the efficacy of the imputation methods.
+
+## Reproducibility and number of simulation
+
+To ensure the reproducibility of the results, all random processes will use a set seed value using the `set.seed` function in R. The R code will be made available along with the paper to allow other researchers to replicate the study.
+
+The study will use 1,000 repetitions for each simulation scenario to achieve robust and reliable conclusions. This number is justified as providing a sufficient balance between precision of the estimates and computational feasibility.
+
+# Research question
+
+The aim of this research is to investigate the influence of missing data on the efficacy of the K-means clustering algorithm. Specifically, the study seeks to answer the following research question:"How does the presence of missing data affect the stability and performance of the K-means clustering algorithm?"
+
+To dissect this question, the research focuses on the following points of inquiry:
+
+1.  **Performance Impact**: How does missing data, at varying levels of incidence (5%, 10%, 20%, and 40%), affect the accuracy of the K-means clustering algorithm? Accuracy will be measured using the Adjusted Rand Index (ARI), Normalized Mutual Information (NMI), and Silhouette score metrics.
+
+2.  **Stability Assessment**: Is the clustering solution provided by K-means consistent across different runs when missing data is present? Stability will be examined by analyzing the variance in cluster assignments across multiple iterations of the algorithm on the same dataset with missing values.
+
+3.  **Imputation Influence**: How do different imputation methods (mean, median, KNN) affect the clustering outcomes in the context of missing data? The study will compare the performance and stability of K-means clustering after missing data are imputed using these techniques.
+
+4.  **Missingness Mechanisms**: Are the impacts on performance and stability of K-means clustering different under various missing data mechanisms (MCAR, MAR, MNAR)? The research will investigate if the reason behind the missing data plays a role in how well the K-means algorithm can recover the true cluster structure.
+
+5.  **Data Characteristics**: How do the intrinsic characteristics of the data, such as cluster shapes and densities, interact with the presence of missing data to affect clustering outcomes? The study will explore if certain data distributions are more or less susceptible to the negative effects of missing data on clustering performance.
+
+By addressing these questions through a Monte Carlo simulation, the study aims to provide a comprehensive understanding of the robustness of the K-means clustering algorithm in the face of incomplete data. The findings will have implications for the application of K-means in real-world scenarios, where missing data are an inherent challenge.
+
+# Monte Carlo Simulation
+
+The core of this research is a Monte Carlo simulation designed to systematically evaluate the impact of missing data on the performance and stability of the K-means clustering algorithm.
+
+```{r}
+# Creation of the complete dataset
+# Definition of the means and covariance matrix for each cluster
+mean1 <- c(0, 0, 0)
+mean2 <- c(5, 5, 5)
+mean3 <- c(10, 0, 0)
+cov_matrix <- matrix(c(1, 0.5, 0, 0.5, 1, 0.5, 0, 0.5, 1), nrow = 3)
+
+# Generation of data for each cluster
+cluster1_data <- mvrnorm(n = 500, mu = mean1, Sigma = cov_matrix)
+cluster2_data <- mvrnorm(n = 500, mu = mean2, Sigma = cov_matrix)
+cluster3_data <- mvrnorm(n = 500, mu = mean3, Sigma = cov_matrix)
+
+# Combining data into one data frame and add true cluster labels
+data <- rbind(cluster1_data, cluster2_data, cluster3_data)
+true_labels <- factor(c(rep(1, 500), rep(2, 500), rep(3, 500)))
+
+# Creation of the complete dataset
+complete_data <- data.frame(data, cluster = true_labels)
+
+```
+
+
+```{r}
+# Function definitions
+
+# MCAR missingness
+introduce_missingness_MCAR <- function(data, missing_rate) {
+  data_missing <- data
+  for (i in 1:ncol(data_missing)) {
+    missing_indices <- sample(1:nrow(data_missing), size = ceiling(missing_rate * nrow(data_missing)))
+    data_missing[missing_indices, i] <- NA
+  }
+  return(data_missing)
+}
+
+# MAR missingness
+introduce_missingness_MAR <- function(data, missing_rate) {
+  data_MAR <- data
+  # Assume missingness in Feature_3 depends on the value of Feature_1
+  for (i in 1:nrow(data_MAR)) {
+    if (runif(1) < (missing_rate + data_MAR[i, 'Feature_1'] / max(data_MAR$Feature_1))) {
+      data_MAR[i, 'Feature_3'] <- NA
+    }
+  }
+  return(data_MAR)
+}
+
+# MNAR missingness
+introduce_missingness_MNAR <- function(data, missing_rate) {
+  data_MNAR <- data
+  # Assume missingness in Feature_3 is related to its own values
+  for (i in 1:nrow(data_MNAR)) {
+    if (runif(1) < missing_rate * (1 - data_MNAR[i, 'Feature_3'] / max(data_MNAR$Feature_3))) {
+      data_MNAR[i, 'Feature_3'] <- NA
+    }
+  }
+  return(data_MNAR)
+}
+
+# Mean inputation
+impute_mean <- function(data) {
+  for (i in 1:ncol(data)) {
+    if (any(is.na(data[, i]))) {
+      data[is.na(data[, i]), i] <- mean(data[, i], na.rm = TRUE)
+    }
+  }
+  return(data)
+}
+
+# Median imputation
+impute_median <- function(data) {
+  for (i in 1:ncol(data)) {
+    # Replace NA with the median of the column
+    data[is.na(data[, i]), i] <- median(data[, i], na.rm = TRUE)
+  }
+  return(data)
+}
+
+# KNN imputation
+impute_knn <- function(data) {
+  # Perform KNN imputation, with k neighbors
+  data_imputed <- knnImpute(data, k = 3)
+  return(data_imputed)
+}
+
+# K-means function
+run_kmeans <- function(data) {
+  # nstart parameter is used to try multiple initial centroids and pick the best result
+  kmeans_result <- kmeans(data, centers = 3, nstart = 5)
+  
+  return(kmeans_result)
+}
+```
+
+
+```{r}
+# Definition of the number of Monte Carlo repetitions
+repetitions <- 1000
+
+# Definition of the levels of missingness you want to test
+missingness_levels <- c(0.05, 0.10, 0.20, 0.40)
+
+# Initialization of a data frame to store metrics
+performance_metrics <- data.frame()
+
+# Placeholder for storing simulation results
+simulation_results <- list()
+ 
+# Monte Carlo simulation loop
+for (missing_rate in missingness_levels) {
+  for (repetition in 1:num_repetitions) {
+    # Unique seed for each repetition for reproducibility
+    set.seed(i)
+    
+    # Introduce missingness
+    data_MCAR <- introduce_missingness_MCAR(complete_data, missing_rate)
+    data_MAR <- introduce_missingness_MAR(complete_data, missing_rate)
+    data_MNAR <- introduce_missingness_MNAR(complete_data, missing_rate)
+    
+    # Impute missing data
+    imputed_data_mean_MCAR <- impute_mean(data_MCAR)
+    imputed_data_median_MCAR <- impute_median(data_MCAR)
+    imputed_data_knn_MCAR <- impute_knn(data_MCAR)
+    
+    imputed_data_mean_MNAR <- impute_mean(data_MNAR)
+    imputed_data_median_MNAR <- impute_median(data_MNAR)
+    imputed_data_knn_MNAR <- impute_knn(data_MNAR)
+    
+    imputed_data_mean_MAR <- impute_mean(data_MAR)
+    imputed_data_median_MAR <- impute_median(data_MAR)
+    imputed_data_knn_MAR <- impute_knn(data_MAR)
+    
+    # Assuming `run_kmeans()` is a function you've already defined
+    kmeans_result_mean_MCAR <- run_kmeans(imputed_data_mean_MCAR, 3)
+    # Repeat for other imputation methods and missingness types...
+
+    # Evaluate clustering performance
+    ari <- adjustedRandIndex(clustering_results$cluster, true_labels)
+    nmi <- normalizedMutualInformation(clustering_results$cluster, true_labels)
+    silhouette_score <- silhouetteWidth(clustering_results$cluster, imputed_data)
+    # Repeat for other imputation methods and missingness types...
+
+    # Store simulation results
+    simulation_results[[paste('MCAR', 'mean', missing_rate, repetition, sep = '_')]] <-   performance_metrics_mean_MCAR
+    # Repeat for other imputation methods and missingness types...
+
+    
+    # Store the metrics for this iteration
+    performance_metrics <- rbind(performance_metrics, c(ari, nmi, silhouette_score))
+}
+```
+
+# Conclusion
