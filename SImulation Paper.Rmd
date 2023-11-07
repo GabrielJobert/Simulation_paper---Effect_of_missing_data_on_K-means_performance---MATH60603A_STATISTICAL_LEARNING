@@ -104,6 +104,7 @@ By addressing these questions through a Monte Carlo simulation, the study aims t
 
 The core of this research is a Monte Carlo simulation designed to systematically evaluate the impact of missing data on the performance and stability of the K-means clustering algorithm.
 
+
 ```{r}
 # Creation of the complete dataset
 # Definition of the means and covariance matrix for each cluster
@@ -119,7 +120,9 @@ cluster3_data <- mvrnorm(n = 500, mu = mean3, Sigma = cov_matrix)
 
 # Combining data into one data frame and add true cluster labels
 data <- rbind(cluster1_data, cluster2_data, cluster3_data)
+colnames(data) <- c("Feature_1", "Feature_2", "Feature_3")
 true_labels <- factor(c(rep(1, 500), rep(2, 500), rep(3, 500)))
+data <- as.data.frame(data)
 
 # Creation of the complete dataset
 complete_data <- data.frame(data, cluster = true_labels)
@@ -127,9 +130,9 @@ complete_data <- data.frame(data, cluster = true_labels)
 ```
 
 
+
 ```{r}
 # Function definitions
-
 # MCAR missingness
 introduce_missingness_MCAR <- function(data, missing_rate) {
   data_missing <- data
@@ -137,6 +140,8 @@ introduce_missingness_MCAR <- function(data, missing_rate) {
     missing_indices <- sample(1:nrow(data_missing), size = ceiling(missing_rate * nrow(data_missing)))
     data_missing[missing_indices, i] <- NA
   }
+
+  
   return(data_missing)
 }
 
@@ -149,22 +154,34 @@ introduce_missingness_MAR <- function(data, missing_rate) {
       data_MAR[i, 'Feature_3'] <- NA
     }
   }
+  
   return(data_MAR)
 }
 
 # MNAR missingness
 introduce_missingness_MNAR <- function(data, missing_rate) {
   data_MNAR <- data
-  # Assume missingness in Feature_3 is related to its own values
+  max_feature_3 <- max(data_MNAR$Feature_3, na.rm = TRUE)
+
+  # Check if max_feature_3 is zero
+  if(max_feature_3 == 0) {
+    # Handle the zero maximum case (e.g., return data as is or throw an error)
+    return(data_MNAR) 
+  }
+
   for (i in 1:nrow(data_MNAR)) {
-    if (runif(1) < missing_rate * (1 - data_MNAR[i, 'Feature_3'] / max(data_MNAR$Feature_3))) {
-      data_MNAR[i, 'Feature_3'] <- NA
+    # Skip rows where Feature_3 is NA
+    if (!is.na(data_MNAR[i, 'Feature_3'])) {
+      if (runif(1) < missing_rate * (1 - data_MNAR[i, 'Feature_3'] / max_feature_3)) {
+        data_MNAR[i, 'Feature_3'] <- NA
+      }
     }
   }
+  
   return(data_MNAR)
 }
 
-# Mean inputation
+# Mean imputation
 impute_mean <- function(data) {
   for (i in 1:ncol(data)) {
     if (any(is.na(data[, i]))) {
@@ -185,20 +202,65 @@ impute_median <- function(data) {
 
 # KNN imputation
 impute_knn <- function(data) {
-  # Perform KNN imputation, with k neighbors
-  data_imputed <- knnImpute(data, k = 3)
-  return(data_imputed)
+  # Mean imputation for rows with all NA values
+  rows_with_all_na <- apply(data, 1, function(x) all(is.na(x)))
+
+  for (i in which(rows_with_all_na)) {
+    data[i, ] <- apply(data, 2, function(x) mean(x, na.rm = TRUE))
+  }
+
+  # Data for KNN imputation
+  data_for_imputation <- data[!rows_with_all_na, ]
+  if (nrow(data_for_imputation) > 0) {
+    data_imputed_knn <- preProcess(data_for_imputation, method = "knnImpute", k = 3)
+    data_imputed_df <- predict(data_imputed_knn, newdata = data_for_imputation)
+
+    # Combine mean-imputed and KNN-imputed data
+    data[!rows_with_all_na, ] <- data_imputed_df
+  }
+
+  return(data)
 }
+
 
 # K-means function
 run_kmeans <- function(data) {
   # nstart parameter is used to try multiple initial centroids and pick the best result
   kmeans_result <- kmeans(data, centers = 3, nstart = 5)
   
+  
   return(kmeans_result)
 }
-```
 
+# Function to calculate Adjusted Rand Index (ARI)
+calculate_ARI <- function(true_labels, predicted_labels) {
+  ARI <- adjustedRandIndex(true_labels, predicted_labels)
+  return(ARI)
+}
+
+# Function to calculate Normalized Mutual Information (NMI)
+calculate_NMI <- function(true_labels, predicted_labels) {
+  mi <- mutinformation(true_labels, predicted_labels)
+  max_entropy <- min(entropy(table(true_labels)), entropy(table(predicted_labels)))
+  NMI <- mi / max_entropy
+  return(NMI)
+}
+
+# Function to calculate Silhouette score
+calculate_silhouette_score <- function(data, predicted_labels) {
+  silhouette_scores <- silhouette(predicted_labels, dist(data))
+  avg_silhouette_score <- mean(silhouette_scores[, 'sil_width'])
+  return(avg_silhouette_score)
+}
+
+# Function to calculate all performance metrics
+calculate_performance_metrics <- function(data, true_labels, predicted_labels) {
+  ARI <- calculate_ARI(true_labels, predicted_labels)
+  NMI <- calculate_NMI(true_labels, predicted_labels)
+  silhouette_score <- calculate_silhouette_score(data, predicted_labels)
+  return(list(ARI = ARI, NMI = NMI, Silhouette_Score = silhouette_score))
+}
+```
 
 ```{r}
 # Definition of the number of Monte Carlo repetitions
@@ -215,14 +277,14 @@ simulation_results <- list()
  
 # Monte Carlo simulation loop
 for (missing_rate in missingness_levels) {
-  for (repetition in 1:num_repetitions) {
+  for (i in 1:repetitions) {
     # Unique seed for each repetition for reproducibility
     set.seed(i)
     
     # Introduce missingness
-    data_MCAR <- introduce_missingness_MCAR(complete_data, missing_rate)
-    data_MAR <- introduce_missingness_MAR(complete_data, missing_rate)
-    data_MNAR <- introduce_missingness_MNAR(complete_data, missing_rate)
+    data_MCAR <- introduce_missingness_MCAR(data, missing_rate)
+    data_MAR <- introduce_missingness_MAR(data, missing_rate)
+    data_MNAR <- introduce_missingness_MNAR(data, missing_rate)
     
     # Impute missing data
     imputed_data_mean_MCAR <- impute_mean(data_MCAR)
@@ -237,24 +299,53 @@ for (missing_rate in missingness_levels) {
     imputed_data_median_MAR <- impute_median(data_MAR)
     imputed_data_knn_MAR <- impute_knn(data_MAR)
     
-    # Assuming `run_kmeans()` is a function you've already defined
-    kmeans_result_mean_MCAR <- run_kmeans(imputed_data_mean_MCAR, 3)
-    # Repeat for other imputation methods and missingness types...
+    # Kmean algorithm
+    kmeans_result_mean_MCAR <- run_kmeans(imputed_data_mean_MCAR)
+    kmeans_result_median_MCAR <- run_kmeans(imputed_data_median_MCAR)
+    kmeans_result_knn_MCAR <- run_kmeans(imputed_data_knn_MCAR)
+    
+    kmeans_result_mean_MNAR <- run_kmeans(imputed_data_mean_MNAR)
+    kmeans_result_median_MNAR <- run_kmeans(imputed_data_median_MNAR)
+    kmeans_result_knn_MNAR <- run_kmeans(imputed_data_knn_MNAR)
+    
+    kmeans_result_mean_MAR <- run_kmeans(imputed_data_mean_MAR)
+    kmeans_result_median_MAR <- run_kmeans(imputed_data_median_MAR)
+    kmeans_result_knn_MAR <- run_kmeans(imputed_data_knn_MAR)
+        
+
 
     # Evaluate clustering performance
-    ari <- adjustedRandIndex(clustering_results$cluster, true_labels)
-    nmi <- normalizedMutualInformation(clustering_results$cluster, true_labels)
-    silhouette_score <- silhouetteWidth(clustering_results$cluster, imputed_data)
-    # Repeat for other imputation methods and missingness types...
+    performance_metrics_list <- list()
+    
+    performance_metrics_list[['mean_MCAR']] <- calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_mean_MCAR$cluster)
+    performance_metrics_list[['median_MCAR']] <- calculate_performance_metrics(imputed_data_median_MCAR, true_labels, kmeans_result_median_MCAR$cluster)
+    performance_metrics_list[['knn_MCAR']] <- calculate_performance_metrics(imputed_data_knn_MCAR, true_labels, kmeans_result_knn_MCAR$cluster)
+    
+        performance_metrics_list[['mean_MNAR']] <- calculate_performance_metrics(imputed_data_mean_MNAR, true_labels, kmeans_result_mean_MCAR$cluster)
+    performance_metrics_list[['median_MNAR']] <- calculate_performance_metrics(imputed_data_median_MNAR, true_labels, kmeans_result_median_MCAR$cluster)
+    performance_metrics_list[['knn_MNAR']] <- calculate_performance_metrics(imputed_data_knn_MNAR, true_labels, kmeans_result_knn_MCAR$cluster)
+    
+        performance_metrics_list[['mean_MAR']] <- calculate_performance_metrics(imputed_data_mean_MAR, true_labels, kmeans_result_mean_MCAR$cluster)
+    performance_metrics_list[['median_MAR']] <- calculate_performance_metrics(imputed_data_median_MAR, true_labels, kmeans_result_median_MCAR$cluster)
+    performance_metrics_list[['knn_MAR']] <- calculate_performance_metrics(imputed_data_knn_MAR, true_labels, kmeans_result_knn_MCAR$cluster)
 
     # Store simulation results
-    simulation_results[[paste('MCAR', 'mean', missing_rate, repetition, sep = '_')]] <-   performance_metrics_mean_MCAR
-    # Repeat for other imputation methods and missingness types...
+simulation_results[[paste('MCAR', 'mean', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['mean_MCAR']]
+    simulation_results[[paste('MCAR', 'median', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['median_MCAR']]
+    simulation_results[[paste('MCAR', 'knn', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['knn_MCAR']]
 
+    simulation_results[[paste('MNAR', 'mean', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['mean_MNAR']]
+    simulation_results[[paste('MNAR', 'median', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['median_MNAR']]
+    simulation_results[[paste('MNAR', 'knn', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['knn_MNAR']]
+    
+    simulation_results[[paste('MAR', 'mean', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['mean_MAR']]
+    simulation_results[[paste('MAR', 'median', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['median_MAR']]
+    simulation_results[[paste('MAR', 'knn', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['knn_MAR']]
     
     # Store the metrics for this iteration
-    performance_metrics <- rbind(performance_metrics, c(ari, nmi, silhouette_score))
+    metrics_vector <- unlist(performance_metrics_list)
+    performance_metrics <- rbind(performance_metrics, metrics_vector)
+  }
 }
 ```
-
 # Conclusion
