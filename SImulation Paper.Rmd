@@ -390,29 +390,30 @@ aggregated_results <- df %>%
 # Visual Representation
 library(ggplot2)
 
-# ARI Comparison
-ggplot(aggregated_results, aes(x = Missingness_level, y = Mean_ARI, fill = Imputation_method)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  facet_wrap(~Missingness_method) +
-  labs(title = "Adjusted Rand Index (ARI) Comparison", x = "Missingness Level", y = "Mean ARI")
+# ARI Comparison by Missingness Level
+ggplot(df, aes(x = Imputation_method, y = ARI, fill = Imputation_method)) +
+  geom_boxplot() +
+  facet_grid(~Missingness_level) +
+  labs(title = "Adjusted Rand Index (ARI) Comparison", x = "Imputation Method", y = "ARI") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
-# NMI Comparison
-ggplot(aggregated_results, aes(x = Missingness_level, y = Mean_NMI, fill = Imputation_method)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  facet_wrap(~Missingness_method) +
-  labs(title = "Normalized Mutual Information (NMI) Comparison", x = "Missingness Level", y = "Mean NMI")
+# NMI Comparison by Missingness Level
+ggplot(df, aes(x = Imputation_method, y = NMI, fill = Imputation_method)) +
+  geom_boxplot() +
+  facet_grid(~Missingness_level) +
+  labs(title = "Normalized Mutual Information (NMI) Comparison", x = "Imputation Method", y = "NMI") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
-# Silhouette Score Comparison
-ggplot(aggregated_results, aes(x = Missingness_level, y = Mean_Silhouette_Score, fill = Imputation_method)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  facet_wrap(~Missingness_method) +
-  labs(title = "Silhouette Score Comparison", x = "Missingness Level", y = "Mean Silhouette Score")
+# Silhouette Score Comparison by Missingness Level
+ggplot(df, aes(x = Imputation_method, y = Silhouette_Score, fill = Imputation_method)) +
+  geom_boxplot() +
+  facet_grid(~Missingness_level) +
+  labs(title = "Silhouette Score Comparison", x = "Imputation Method", y = "Silhouette Score") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 ```
 
 **Intepretation of the results**
 
 # Conclusion
-why was this useful and what have we learned about the method
-
-- agregation des resultats par missingness methods, par imputation de méthodes
+The visual analytics of our simulation study have elucidated the differential impacts of various imputation methods on the performance of K-means clustering in the context of missing data. The Adjusted Rand Index (ARI) and Silhouette Score comparisons across missingness levels (5%, 10%, 20%, 40%) under three missing data mechanisms (MAR, MCAR, MNAR) reveal distinct patterns. The KNN imputation method generally maintains higher ARI and Silhouette Scores compared to mean and median imputation, suggesting its effectiveness in preserving the original data structure despite the presence of missing values.
