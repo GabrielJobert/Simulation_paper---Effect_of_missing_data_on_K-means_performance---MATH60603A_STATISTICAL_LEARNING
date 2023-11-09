@@ -394,21 +394,21 @@ library(ggplot2)
 ggplot(df, aes(x = Imputation_method, y = ARI, fill = Imputation_method)) +
   geom_boxplot() +
   facet_grid(~Missingness_level) +
-  labs(title = "Adjusted Rand Index (ARI) Comparison", x = "Imputation Method", y = "ARI") +
+  labs(title = "Adjusted Rand Index (ARI) Comparison by Missingness Level", x = "Imputation Method", y = "ARI") +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 # NMI Comparison by Missingness Level
 ggplot(df, aes(x = Imputation_method, y = NMI, fill = Imputation_method)) +
   geom_boxplot() +
   facet_grid(~Missingness_level) +
-  labs(title = "Normalized Mutual Information (NMI) Comparison", x = "Imputation Method", y = "NMI") +
+  labs(title = "Normalized Mutual Information (NMI) Comparison by Missingness Level", x = "Imputation Method", y = "NMI") +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 # Silhouette Score Comparison by Missingness Level
 ggplot(df, aes(x = Imputation_method, y = Silhouette_Score, fill = Imputation_method)) +
   geom_boxplot() +
   facet_grid(~Missingness_level) +
-  labs(title = "Silhouette Score Comparison", x = "Imputation Method", y = "Silhouette Score") +
+  labs(title = "Silhouette Score Comparison by Missingness Level", x = "Imputation Method", y = "Silhouette Score") +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
 
 ```
