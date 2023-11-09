@@ -382,7 +382,9 @@ df$Simulation_id <- as.numeric(sapply(categories_split, `[`, 4))
 
 # Visual Representation
 # Create side-by-side boxplots to compare performance under different scenarios
-
+avg_missingness <- aggregate(cbind(ARI, NMI, Silhouette_Score) ~ Missingness_method, data = df, mean)
+avg_imputation <- aggregate(cbind(ARI, NMI, Silhouette_Score) ~ Imputation_method, data = df, mean)
+avg_miss_level <- aggregate(cbind(ARI, NMI, Silhouette_Score) ~ Missingness_level, data = df, mean)
 
 # ARI Comparison
 
