@@ -1,6 +1,6 @@
 ---
 title: "Simulation Paper Statistical Learning"
-author: "Gabriel Jobert"
+author: "Gabriel Jobert - Cédric Lam - Pierre-Chanel Mangin"
 date: "2023-11-05"
 output: html_document
 ---
@@ -10,6 +10,7 @@ library(MASS)
 library(caret)
 library(cluster)
 library(mclust)
+library(infotheo)
 ```
 
 # Description of the methods compared
@@ -266,7 +267,7 @@ calculate_performance_metrics <- function(data, true_labels, predicted_labels) {
 
 ```{r}
 # Definition of the number of Monte Carlo repetitions
-repetitions <- 1000
+repetitions <- 2
 
 # Definition of the levels of missingness you want to test
 missingness_levels <- c(0.05, 0.10, 0.20, 0.40)
@@ -346,7 +347,7 @@ for (missing_rate in missingness_levels) {
   }
 }
 
-print(simulation_results)
+# print(simulation_results)
 ```
 
 ```{r}
@@ -397,3 +398,5 @@ df$Simulation_id <- as.numeric(sapply(categories_split, `[`, 4))
 
 # Conclusion
 why was this useful and what have we learned about the method
+
+- agregation des resultats par missingness methods, par imputation de méthodes
