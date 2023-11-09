@@ -9,6 +9,7 @@ output: html_document
 library(MASS)
 library(caret)
 library(cluster)
+library(mclust)
 ```
 
 # Description of the methods compared
