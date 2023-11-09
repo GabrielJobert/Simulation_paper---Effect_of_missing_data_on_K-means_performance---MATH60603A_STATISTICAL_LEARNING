@@ -377,22 +377,36 @@ df$Simulation_id <- as.numeric(sapply(categories_split, `[`, 4))
 
 ```{r}
 # Aggregation of the Metrics
-# Report average measurements by Missingness_method, Imputation_method, Missingness_level
+library(dplyr)
 
+aggregated_results <- df %>%
+  group_by(Missingness_method, Imputation_method, Missingness_level) %>%
+  summarise(
+    Mean_ARI = mean(ARI),
+    Mean_NMI = mean(NMI),
+    Mean_Silhouette_Score = mean(Silhouette_Score)
+  )
 
 # Visual Representation
-# Create side-by-side boxplots to compare performance under different scenarios
-avg_missingness <- aggregate(cbind(ARI, NMI, Silhouette_Score) ~ Missingness_method, data = df, mean)
-avg_imputation <- aggregate(cbind(ARI, NMI, Silhouette_Score) ~ Imputation_method, data = df, mean)
-avg_miss_level <- aggregate(cbind(ARI, NMI, Silhouette_Score) ~ Missingness_level, data = df, mean)
+library(ggplot2)
 
 # ARI Comparison
-
+ggplot(aggregated_results, aes(x = Missingness_level, y = Mean_ARI, fill = Imputation_method)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(~Missingness_method) +
+  labs(title = "Adjusted Rand Index (ARI) Comparison", x = "Missingness Level", y = "Mean ARI")
 
 # NMI Comparison
-
+ggplot(aggregated_results, aes(x = Missingness_level, y = Mean_NMI, fill = Imputation_method)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(~Missingness_method) +
+  labs(title = "Normalized Mutual Information (NMI) Comparison", x = "Missingness Level", y = "Mean NMI")
 
 # Silhouette Score Comparison
+ggplot(aggregated_results, aes(x = Missingness_level, y = Mean_Silhouette_Score, fill = Imputation_method)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  facet_wrap(~Missingness_method) +
+  labs(title = "Silhouette Score Comparison", x = "Missingness Level", y = "Mean Silhouette Score")
 
 ```
 
