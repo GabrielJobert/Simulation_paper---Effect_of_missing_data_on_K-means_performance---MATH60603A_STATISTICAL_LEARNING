@@ -318,35 +318,62 @@ for (missing_rate in missingness_levels) {
     # Evaluate clustering performance
     performance_metrics_list <- list()
     
-    performance_metrics_list[['mean_MCAR']] <- calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_mean_MCAR$cluster)
-    performance_metrics_list[['median_MCAR']] <- calculate_performance_metrics(imputed_data_median_MCAR, true_labels, kmeans_result_median_MCAR$cluster)
-    performance_metrics_list[['knn_MCAR']] <- calculate_performance_metrics(imputed_data_knn_MCAR, true_labels, kmeans_result_knn_MCAR$cluster)
+    performance_metrics_list[['mean_MCAR']] <- c("MCAR", "Mean", calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_mean_MCAR$cluster))
+    performance_metrics_list[['median_MCAR']] <- c("MCAR", "Median", calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_median_MCAR$cluster))
+    performance_metrics_list[['knn_MCAR']] <- c("MCAR", "Knn", calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_knn_MCAR$cluster))
     
-        performance_metrics_list[['mean_MNAR']] <- calculate_performance_metrics(imputed_data_mean_MNAR, true_labels, kmeans_result_mean_MCAR$cluster)
-    performance_metrics_list[['median_MNAR']] <- calculate_performance_metrics(imputed_data_median_MNAR, true_labels, kmeans_result_median_MCAR$cluster)
-    performance_metrics_list[['knn_MNAR']] <- calculate_performance_metrics(imputed_data_knn_MNAR, true_labels, kmeans_result_knn_MCAR$cluster)
+    performance_metrics_list[['mean_MNAR']] <- c("MNAR", "Mean", calculate_performance_metrics(imputed_data_mean_MNAR, true_labels, kmeans_result_mean_MNAR$cluster))
+    performance_metrics_list[['median_MNAR']] <- c("MNAR", "Median", calculate_performance_metrics(imputed_data_median_MNAR, true_labels, kmeans_result_median_MNAR$cluster))
+    performance_metrics_list[['knn_MNAR']] <- c("MNAR", "Knn", calculate_performance_metrics(imputed_data_knn_MNAR, true_labels, kmeans_result_knn_MNAR$cluster))
     
-        performance_metrics_list[['mean_MAR']] <- calculate_performance_metrics(imputed_data_mean_MAR, true_labels, kmeans_result_mean_MCAR$cluster)
-    performance_metrics_list[['median_MAR']] <- calculate_performance_metrics(imputed_data_median_MAR, true_labels, kmeans_result_median_MCAR$cluster)
-    performance_metrics_list[['knn_MAR']] <- calculate_performance_metrics(imputed_data_knn_MAR, true_labels, kmeans_result_knn_MCAR$cluster)
+    performance_metrics_list[['mean_MAR']] <- c("MAR", "Mean", calculate_performance_metrics(imputed_data_mean_MAR, true_labels, kmeans_result_mean_MAR$cluster))
+    performance_metrics_list[['median_MAR']] <- c("MAR", "Median", calculate_performance_metrics(imputed_data_median_MAR, true_labels, kmeans_result_median_MAR$cluster))
+    performance_metrics_list[['knn_MAR']] <- c("MAR", "Knn", calculate_performance_metrics(imputed_data_knn_MAR, true_labels, kmeans_result_knn_MAR$cluster))
 
-    # Store simulation results
-simulation_results[[paste('MCAR', 'mean', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['mean_MCAR']]
-    simulation_results[[paste('MCAR', 'median', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['median_MCAR']]
-    simulation_results[[paste('MCAR', 'knn', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['knn_MCAR']]
-
-    simulation_results[[paste('MNAR', 'mean', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['mean_MNAR']]
-    simulation_results[[paste('MNAR', 'median', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['median_MNAR']]
-    simulation_results[[paste('MNAR', 'knn', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['knn_MNAR']]
-    
-    simulation_results[[paste('MAR', 'mean', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['mean_MAR']]
-    simulation_results[[paste('MAR', 'median', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['median_MAR']]
-    simulation_results[[paste('MAR', 'knn', missing_rate, repetition, sep = '_')]] <- performance_metrics_list[['knn_MAR']]
-    
-    # Store the metrics for this iteration
-    metrics_vector <- unlist(performance_metrics_list)
-    performance_metrics <- rbind(performance_metrics, metrics_vector)
+metrics_df_row <- as.data.frame(t(unlist(performance_metrics_list)), stringsAsFactors = FALSE)
+performance_metrics <- rbind(performance_metrics, metrics_df_row)
   }
 }
 ```
+
+```{r}
+head(performance_metrics)
+```
+
+```{r}
+# Aggregation of the Metrics
+performance_summary <- performance_metrics %>%
+  group_by(Missingness_Type, Method) %>%
+  summarise(
+    Mean_ARI = mean(ARI, na.rm = TRUE),
+    SD_ARI = sd(ARI, na.rm = TRUE),
+    Mean_NMI = mean(NMI, na.rm = TRUE),
+    SD_NMI = sd(NMI, na.rm = TRUE),
+    Mean_Silhouette = mean(Silhouette_Score, na.rm = TRUE),
+    SD_Silhouette = sd(Silhouette_Score, na.rm = TRUE)
+  )
+
+# Visual Representation
+# ARI Comparison
+ggplot(performance_summary, aes(x = Missingness_Type, y = Mean_ARI, fill = Method)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = Mean_ARI - SD_ARI, ymax = Mean_ARI + SD_ARI), width = .2, position = position_dodge(.9)) +
+  labs(title = "Average ARI Comparison", x = "Missingness Type", y = "Average ARI") +
+  theme_minimal()
+
+# NMI Comparison
+ggplot(performance_summary, aes(x = Missingness_Type, y = Mean_NMI, fill = Method)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = Mean_NMI - SD_NMI, ymax = Mean_NMI + SD_NMI), width = .2, position = position_dodge(.9)) +
+  labs(title = "Average NMI Comparison", x = "Missingness Type", y = "Average NMI") +
+  theme_minimal()
+
+# Silhouette Score Comparison
+ggplot(performance_summary, aes(x = Missingness_Type, y = Mean_Silhouette, fill = Method)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_errorbar(aes(ymin = Mean_Silhouette - SD_Silhouette, ymax = Mean_Silhouette + SD_Silhouette), width = .2, position = position_dodge(.9)) +
+  labs(title = "Average Silhouette Score Comparison", x = "Missingness Type", y = "Average Silhouette Score") +
+  theme_minimal()
+```
+
 # Conclusion
