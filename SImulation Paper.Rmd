@@ -105,6 +105,7 @@ By addressing these questions through a Monte Carlo simulation, the study aims t
 
 The core of this research is a Monte Carlo simulation designed to systematically evaluate the impact of missing data on the performance and stability of the K-means clustering algorithm.
 
+**describe precisely what you simulate and why, it has to be reproducible. Display and interpret the results obtained. Note that designing insightful displays is an art – you must choose wisely what you present to answer your question.**
 
 ```{r}
 # Creation of the complete dataset
@@ -270,8 +271,6 @@ repetitions <- 1000
 # Definition of the levels of missingness you want to test
 missingness_levels <- c(0.05, 0.10, 0.20, 0.40)
 
-# Initialization of a data frame to store metrics
-performance_metrics <- data.frame()
 
 # Placeholder for storing simulation results
 simulation_results <- list()
@@ -315,65 +314,86 @@ for (missing_rate in missingness_levels) {
         
 
 
+ 
+
     # Evaluate clustering performance
     performance_metrics_list <- list()
     
-    performance_metrics_list[['mean_MCAR']] <- c("MCAR", "Mean", calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_mean_MCAR$cluster))
-    performance_metrics_list[['median_MCAR']] <- c("MCAR", "Median", calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_median_MCAR$cluster))
-    performance_metrics_list[['knn_MCAR']] <- c("MCAR", "Knn", calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_knn_MCAR$cluster))
+    performance_metrics_list[['mean_MCAR']] <- calculate_performance_metrics(imputed_data_mean_MCAR, true_labels, kmeans_result_mean_MCAR$cluster)
+    performance_metrics_list[['median_MCAR']] <- calculate_performance_metrics(imputed_data_median_MCAR, true_labels, kmeans_result_median_MCAR$cluster)
+    performance_metrics_list[['knn_MCAR']] <- calculate_performance_metrics(imputed_data_knn_MCAR, true_labels, kmeans_result_knn_MCAR$cluster)
     
-    performance_metrics_list[['mean_MNAR']] <- c("MNAR", "Mean", calculate_performance_metrics(imputed_data_mean_MNAR, true_labels, kmeans_result_mean_MNAR$cluster))
-    performance_metrics_list[['median_MNAR']] <- c("MNAR", "Median", calculate_performance_metrics(imputed_data_median_MNAR, true_labels, kmeans_result_median_MNAR$cluster))
-    performance_metrics_list[['knn_MNAR']] <- c("MNAR", "Knn", calculate_performance_metrics(imputed_data_knn_MNAR, true_labels, kmeans_result_knn_MNAR$cluster))
+        performance_metrics_list[['mean_MNAR']] <- calculate_performance_metrics(imputed_data_mean_MNAR, true_labels, kmeans_result_mean_MCAR$cluster)
+    performance_metrics_list[['median_MNAR']] <- calculate_performance_metrics(imputed_data_median_MNAR, true_labels, kmeans_result_median_MCAR$cluster)
+    performance_metrics_list[['knn_MNAR']] <- calculate_performance_metrics(imputed_data_knn_MNAR, true_labels, kmeans_result_knn_MCAR$cluster)
     
-    performance_metrics_list[['mean_MAR']] <- c("MAR", "Mean", calculate_performance_metrics(imputed_data_mean_MAR, true_labels, kmeans_result_mean_MAR$cluster))
-    performance_metrics_list[['median_MAR']] <- c("MAR", "Median", calculate_performance_metrics(imputed_data_median_MAR, true_labels, kmeans_result_median_MAR$cluster))
-    performance_metrics_list[['knn_MAR']] <- c("MAR", "Knn", calculate_performance_metrics(imputed_data_knn_MAR, true_labels, kmeans_result_knn_MAR$cluster))
+        performance_metrics_list[['mean_MAR']] <- calculate_performance_metrics(imputed_data_mean_MAR, true_labels, kmeans_result_mean_MCAR$cluster)
+    performance_metrics_list[['median_MAR']] <- calculate_performance_metrics(imputed_data_median_MAR, true_labels, kmeans_result_median_MCAR$cluster)
+    performance_metrics_list[['knn_MAR']] <- calculate_performance_metrics(imputed_data_knn_MAR, true_labels, kmeans_result_knn_MCAR$cluster)
 
-metrics_df_row <- as.data.frame(t(unlist(performance_metrics_list)), stringsAsFactors = FALSE)
-performance_metrics <- rbind(performance_metrics, metrics_df_row)
+    # Store simulation results
+    simulation_results[[paste('MCAR', 'mean', missing_rate, i, sep = '_')]] <- performance_metrics_list[['mean_MCAR']]
+    simulation_results[[paste('MCAR', 'median', missing_rate, i, sep = '_')]] <- performance_metrics_list[['median_MCAR']]
+    simulation_results[[paste('MCAR', 'knn', missing_rate, i, sep = '_')]] <- performance_metrics_list[['knn_MCAR']]
+
+    simulation_results[[paste('MNAR', 'mean', missing_rate, i, sep = '_')]] <- performance_metrics_list[['mean_MNAR']]
+    simulation_results[[paste('MNAR', 'median', missing_rate, i, sep = '_')]] <- performance_metrics_list[['median_MNAR']]
+    simulation_results[[paste('MNAR', 'knn', missing_rate, i, sep = '_')]] <- performance_metrics_list[['knn_MNAR']]
+    
+    simulation_results[[paste('MAR', 'mean', missing_rate, i, sep = '_')]] <- performance_metrics_list[['mean_MAR']]
+    simulation_results[[paste('MAR', 'median', missing_rate, i, sep = '_')]] <- performance_metrics_list[['median_MAR']]
+    simulation_results[[paste('MAR', 'knn', missing_rate, i, sep = '_')]] <- performance_metrics_list[['knn_MAR']]
   }
 }
+
+print(simulation_results)
 ```
 
 ```{r}
-head(performance_metrics)
+# Transforming the results into a df
+df <- data.frame(Category = character(), 
+                 ARI = numeric(), 
+                 NMI = numeric(), 
+                 Silhouette_Score = numeric(), 
+                 stringsAsFactors = FALSE)
+
+for (category in names(simulation_results)) {
+    cat_data <- simulation_results[[category]]
+    new_row <- data.frame(Category = category, 
+                          ARI = cat_data$ARI, 
+                          NMI = cat_data$NMI, 
+                          Silhouette_Score = cat_data$Silhouette_Score)
+    df <- rbind(df, new_row)
+}
+
+categories_split <- strsplit(df$Category, "_")
+df$Missingness_method <- sapply(categories_split, `[`, 1)
+df$Imputation_method <- sapply(categories_split, `[`, 2)
+df$Missingness_level <- sapply(categories_split, `[`, 3)
+df$Simulation_id <- as.numeric(sapply(categories_split, `[`, 4))
 ```
+
 
 ```{r}
 # Aggregation of the Metrics
-performance_summary <- performance_metrics %>%
-  group_by(Missingness_Type, Method) %>%
-  summarise(
-    Mean_ARI = mean(ARI, na.rm = TRUE),
-    SD_ARI = sd(ARI, na.rm = TRUE),
-    Mean_NMI = mean(NMI, na.rm = TRUE),
-    SD_NMI = sd(NMI, na.rm = TRUE),
-    Mean_Silhouette = mean(Silhouette_Score, na.rm = TRUE),
-    SD_Silhouette = sd(Silhouette_Score, na.rm = TRUE)
-  )
+# Report average measurements by Missingness_method, Imputation_method, Missingness_level
+
 
 # Visual Representation
+# Create side-by-side boxplots to compare performance under different scenarios
+
+
 # ARI Comparison
-ggplot(performance_summary, aes(x = Missingness_Type, y = Mean_ARI, fill = Method)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = Mean_ARI - SD_ARI, ymax = Mean_ARI + SD_ARI), width = .2, position = position_dodge(.9)) +
-  labs(title = "Average ARI Comparison", x = "Missingness Type", y = "Average ARI") +
-  theme_minimal()
+
 
 # NMI Comparison
-ggplot(performance_summary, aes(x = Missingness_Type, y = Mean_NMI, fill = Method)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = Mean_NMI - SD_NMI, ymax = Mean_NMI + SD_NMI), width = .2, position = position_dodge(.9)) +
-  labs(title = "Average NMI Comparison", x = "Missingness Type", y = "Average NMI") +
-  theme_minimal()
+
 
 # Silhouette Score Comparison
-ggplot(performance_summary, aes(x = Missingness_Type, y = Mean_Silhouette, fill = Method)) +
-  geom_bar(stat = "identity", position = position_dodge()) +
-  geom_errorbar(aes(ymin = Mean_Silhouette - SD_Silhouette, ymax = Mean_Silhouette + SD_Silhouette), width = .2, position = position_dodge(.9)) +
-  labs(title = "Average Silhouette Score Comparison", x = "Missingness Type", y = "Average Silhouette Score") +
-  theme_minimal()
+
 ```
 
+**Intepretation of the results**
+
 # Conclusion
+why was this useful and what have we learned about the method
