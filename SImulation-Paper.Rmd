@@ -1,34 +1,39 @@
 ---
 title: "Simulation Paper Statistical Learning"
-author: "Gabriel Jobert - Cédric Lam - Pierre-Chanel Mangin"
+author: "Gabriel Jobert"
 date: "2023-11-05"
 output: html_document
 ---
 
-```{r, echo=FALSE, results='hide'}
-library(MASS)
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+suppressWarnings({
+  library(MASS)
 library(caret)
-library(cluster)
-library(mclust)
+library(cluster)  
+library(mclust)   
 library(infotheo)
+library(RANN)
+library(ggplot2)
+library(dplyr)
+})
 ```
 
 # Description of the methods compared
 
 This study employs a Monte Carlo simulation approach to evaluate the impact of missing data on the performance and stability of the K-means clustering algorithm. The methods of data generation, missing data introduction, imputation, and clustering are described below.
 
-## K-means Clustering
+### K-means Clustering
 
 K-means is a partitioning method that divides data into $k$ non-overlapping subsets (clusters) without any cluster-internal structure. Points in the same cluster are as close as possible to each other while being as far as possible from points in other clusters. The algorithm iteratively assigns points to the nearest cluster centroid and re-calculates the centroids until a stopping criterion is met. The key steps of the algorithm are as follows:
 
 1.  **Initialization :** 3 initial centroids will be randomly selected from the data points.
 2.  **Assignment :** Each data point will be assigned to the closest centroid, forming 3 clusters.
-3.  **Update :** The centroids will be recaculated as the mean of all points assigned to the cluster.
+3.  **Update :** The centroids will be recalculated as the mean of all points assigned to the cluster.
 4.  **Convergence check :** The previous step will be repeated until the centroids do not change significantly or a maximum number of iterations is reached.
 
 The K-means algorithm will be implemented using the `stats.kmeans` function.
 
-## Data Generation
+### Data Generation
 
 The simulation begins with the generation of a synthetic dataset designed to mimic real-world data with inherent cluster structures. This dataset consists of 1500 observations, each with three features, and is divided into three true clusters. The features of the dataset are sampled from multivariate Gaussian distributions with predefined means and covariances, ensuring distinct and separable clusters.
 
@@ -42,7 +47,7 @@ The simulation begins with the generation of a synthetic dataset designed to mim
 
 These parameters are chosen to establish clear cluster separation, which serves as a baseline for evaluating the impact of missing data on clustering performance.
 
-## Data Missingness Mechanisms
+### Data Missingness Mechanisms
 
 Missing data are introduced into the complete dataset at varying rates of 5%, 10%, 20%, and 40%, simulating a range of scenarios from minimal to substantial data loss. Each scenario is examined under three mechanisms of missingness: MCAR, MAR, and MNAR, to reflect different real-world situations of incomplete data.
 
@@ -56,7 +61,7 @@ Three mechanisms are employed to introduce missing data into the complete datase
 
 The `mice` package in R will be utilized to simulate these missingness mechanisms.
 
-## Imputation techniques
+### Imputation techniques
 
 For each dataset with missing values, the missing data are imputed using three techniques: mean, median, and KNN imputation. These methods represent simple to more complex approaches to handling missing data. After imputation, the K-means algorithm is applied to the imputed datasets with the number of clusters set to three, matching the true number of clusters.
 
@@ -66,7 +71,7 @@ For each dataset with missing values, the missing data are imputed using three t
 
 -   **KNN imputation :** The missing values are imputed using the values of the nearest neighbors found in the feature space. The proximity of different observations is calculated using a distance metric, typically Euclidean distance.
 
-## Measurement of Performance and stability
+### Measurement of Performance and stability
 
 Each imputed and clustered dataset is evaluated using the following metrics:
 
@@ -78,11 +83,11 @@ Each imputed and clustered dataset is evaluated using the following metrics:
 
 These performance metrics are calculated for each repetition of the simulation to assess the impact of missing data and the efficacy of the imputation methods.
 
-## Reproducibility and number of simulation
+### Reproducibility and number of simulation
 
 To ensure the reproducibility of the results, all random processes will use a set seed value using the `set.seed` function in R. The R code will be made available along with the paper to allow other researchers to replicate the study.
 
-The study will use 1,000 repetitions for each simulation scenario to achieve robust and reliable conclusions. This number is justified as providing a sufficient balance between precision of the estimates and computational feasibility.
+The study will use 5 repetitions for each simulation scenario to achieve robust and reliable conclusions. This number is justified as providing a sufficient balance between precision of the estimates and computational feasibility.
 
 # Research question
 
@@ -104,11 +109,8 @@ By addressing these questions through a Monte Carlo simulation, the study aims t
 
 # Monte Carlo Simulation
 
-The core of this research is a Monte Carlo simulation designed to systematically evaluate the impact of missing data on the performance and stability of the K-means clustering algorithm.
 
-**describe precisely what you simulate and why, it has to be reproducible. Display and interpret the results obtained. Note that designing insightful displays is an art – you must choose wisely what you present to answer your question.**
-
-```{r}
+```{r, results = 'hide', include='FALSE', warning='FALSE', message='FALSE'}
 # Creation of the complete dataset
 # Definition of the means and covariance matrix for each cluster
 mean1 <- c(0, 0, 0)
@@ -132,9 +134,7 @@ complete_data <- data.frame(data, cluster = true_labels)
 
 ```
 
-
-
-```{r}
+```{r, results = 'hide', include='FALSE', warning='FALSE', message='FALSE'}
 # Function definitions
 # MCAR missingness
 introduce_missingness_MCAR <- function(data, missing_rate) {
@@ -265,13 +265,12 @@ calculate_performance_metrics <- function(data, true_labels, predicted_labels) {
 }
 ```
 
-```{r}
+```{r, results = 'hide', include='FALSE', warning='FALSE', message='FALSE'}
 # Definition of the number of Monte Carlo repetitions
-repetitions <- 100
+repetitions <- 5
 
 # Definition of the levels of missingness you want to test
 missingness_levels <- c(0.05, 0.10, 0.20, 0.40)
-
 
 # Placeholder for storing simulation results
 simulation_results <- list()
@@ -315,8 +314,6 @@ for (missing_rate in missingness_levels) {
         
 
 
- 
-
     # Evaluate clustering performance
     performance_metrics_list <- list()
     
@@ -347,10 +344,10 @@ for (missing_rate in missingness_levels) {
   }
 }
 
-# print(simulation_results)
+print(simulation_results)
 ```
 
-```{r}
+```{r, results = 'hide', include='FALSE', warning='FALSE', message='FALSE'}
 # Transforming the results into a df
 df <- data.frame(Category = character(), 
                  ARI = numeric(), 
@@ -375,10 +372,29 @@ df$Simulation_id <- as.numeric(sapply(categories_split, `[`, 4))
 ```
 
 
-```{r}
-# Aggregation of the Metrics
-library(dplyr)
+The core of this research is a Monte Carlo simulation designed to systematically evaluate the impact of missing data on the performance and stability of the K-means clustering algorithm. This simulation creates a synthetic dataset that represents three distinct clusters, with means and covariances designed to mimic real-world data distributions. We introduce missingness into the complete dataset at rates of 5%, 10%, 20%, and 40%, reflecting varying scenarios from minimal to substantial data loss. The missingness is applied using three distinct mechanisms: MCAR (Missing Completely at Random), MAR (Missing At Random), and MNAR (Missing Not At Random), to emulate different real-world situations of incomplete data.
 
+The missing data are then imputed using three different techniques: mean, median, and KNN (k-nearest neighbors) imputation. These methods span from simple (mean, median) to more complex (KNN) approaches, providing a comprehensive view of the imputation strategies. After imputation, we apply the K-means algorithm to the completed datasets and measure the performance using three metrics: the Adjusted Rand Index (ARI), Normalized Mutual Information (NMI), and Silhouette Score.
+
+The simulation is repeated 5 times (we wanted to simuate more repetition here but it has represented some difficulties for computational reasons) for each combination of missingness level, missingness method and imputation method (36 scenarios repeated 5 times) to ensure robustness and reliability in our findings. All random processes are controlled with a set seed value to guarantee the reproducibility of the results.
+
+You can refer to the R code part of this paper to further explanations.
+
+### Simulation Results
+The simulation results are aggregated and analyzed to discern the effects of missingness levels and imputation methods on clustering performance. To effectively communicate our findings, we employ visual representations that allow us to observe trends and make comparisons easily. The boxplots are chosen for their ability to depict the distribution of the performance metrics across the simulations, providing insights into the median performance and variability for each scenario.
+
+#### Adjusted Rand Index (ARI) Comparison by Missingness Level
+The ARI scores are displayed in a series of boxplots, categorized by missingness levels and imputation methods. This visualization highlights how closely the clustering results match the true cluster labels after accounting for chance. Higher ARI values indicate better alignment with the true labels, and thus more successful clustering outcomes.
+
+#### Normalized Mutual Information (NMI) Comparison by Missingness Level
+Similarly, NMI scores are presented in a boxplot format. NMI measures the shared information between the predicted and true clusters, providing an understanding of the quality of the clustering. The boxplots allow us to compare the average performance and the consistency of the imputation methods across different rates of missingness.
+
+#### Silhouette Score Comparison by Missingness Level
+Lastly, the Silhouette Scores, which assess the cohesion and separation of the clusters formed, are visualized. These scores provide an internal evaluation of the clustering quality, with higher scores indicating better-defined clusters.
+
+
+```{r, echo='False', warning='FALSE', message='FALSE'} 
+# Aggregation of the Metrics
 aggregated_results <- df %>%
   group_by(Missingness_method, Imputation_method, Missingness_level) %>%
   summarise(
@@ -388,8 +404,6 @@ aggregated_results <- df %>%
   )
 
 # Visual Representation
-library(ggplot2)
-
 # ARI Comparison by Missingness Level
 ggplot(df, aes(x = Imputation_method, y = ARI, fill = Imputation_method)) +
   geom_boxplot() +
@@ -415,11 +429,48 @@ ggplot(df, aes(x = Imputation_method, y = Silhouette_Score, fill = Imputation_me
 
 **Intepretation of the results**
 
-1. Imputation Method Performance: Across all missingness levels, KNN imputation mostly exhibits superior performance in maintaining clustering integrity, as indicated by higher median ARI, NMI, and Silhouette Scores. The consistency of these results, underscores the robustness of KNN imputation in handling missing data. Mean imputation appears less effective, particularly at higher missingness levels, suggesting it may not be the best choice when the data loss is significant. Median imputation presents a middle ground, with performance generally falling between KNN and mean imputation.
+**Impact of Missingness Level:**
+The level of missingness in a dataset significantly affects the efficacy of the K-means clustering algorithm. As missingness increases from 5% to 40%, there is a discernible decline in clustering accuracy and consistency, which is captured by the silhouette score, NMI, and ARI metrics. This trend underscores the challenge that missing data pose to maintaining the intrinsic structure of the dataset and suggests that the clustering algorithm's ability to identify and maintain true cluster boundaries weakens as missing data becomes more prevalent. The degree of impact varies with the imputation technique employed, highlighting the need for robust imputation methods to mitigate the adverse effects of missingness on clustering outcomes.
 
-2. Impact of Missingness Level: As the proportion of missing data increases, there is a discernible decline in clustering performance for all imputation methods. This trend is persistent across multiple repetitions, reinforcing the notion that the level of missing data is a critical factor in the performance of K-means clustering. Despite this, KNN imputation remains relatively stable, suggesting it is a more resilient approach compared to the others.
+**Impact of Imputation Technique:**
+The imputation technique plays a crucial role in determining the performance of K-means clustering in the presence of missing data. Each method, with its inherent strengths and weaknesses, interacts differently with the clustering algorithm:
 
-3. Metric Sensitivity: The Normalized Mutual Information metric shows less variability across different imputation methods than the ARI and Silhouette Scores. This may suggest that NMI is more robust to the choice of imputation method, making it a potentially more reliable metric under conditions of missing data.
+- **KNN Imputation**: It appears to be sensitive to the increasing sparsity of the feature space as missingness levels rise, leading to a notable decrease in clustering performance. The reliance on the proximity of data points for imputation makes it vulnerable to higher variability and lower accuracy in the presence of extensive missing data.
 
-4. Clustering Stability: The lower variance in the performance metrics, especially in the ARI and Silhouette Scores with KNN imputation, suggests more consistent clustering outcomes. This implies that KNN imputation may contribute to the stability of K-means clustering in the presence of missing data, a hypothesis that could be directly investigated in future studies by measuring clustering stability through metrics like the Jaccard similarity coefficient.
+- **Mean Imputation**: This technique shows a tendency to diminish intra-cluster variance and distort cluster centroids towards the overall mean, which becomes particularly problematic with larger amounts of missing data. The graphs indicate a pronounced negative impact on clustering performance as missingness increases, suggesting that mean imputation may be less suitable for datasets with significant levels of missing data.
+
+- **Median Imputation**: Median imputation demonstrates a more stable and robust performance across varying levels of missingness. Its resilience can be attributed to the median's insensitivity to extreme values and its ability to maintain a more accurate representation of the central tendency of the data. This results in a less dramatic impact on clustering accuracy, making it a preferable choice for handling missing data within K-means clustering.
+
+
+1. **Silhouette Score Comparison**:
+   - **KNN Imputation**: The variability in silhouette scores for KNN imputation, especially at higher missingness levels, may be due to the method's sensitivity to the local data structure. KNN relies on the proximity of data points, which can be significantly altered when data is missing, leading to less reliable imputation and, consequently, less consistent clustering.
+   - **Mean Imputation**: The declining performance of mean imputation at higher levels of missingness can be attributed to its simplistic approach, which does not consider the underlying data distribution. Replacing missing values with the mean can reduce the variance within the data and potentially bias the cluster centroids towards the mean, resulting in poorer clustering outcomes.
+   - **Median Imputation**: The relatively stable performance of median imputation across different levels of missingness may be due to the median's robustness to outliers and skewed distributions. Unlike the mean, the median is not influenced by extreme values, which helps preserve the original distribution of the data better, leading to more reliable clustering even as missingness increases.
+
+2. **Normalized Mutual Information (NMI) Comparison**:
+   - **KNN and Median Imputation**: The closer performance of KNN and median imputation in terms of NMI at higher missingness levels suggests that both methods retain some of the data's inherent structure. While KNN can capture the local structure, median imputation maintains the centrality measure that is resistant to outliers, which is crucial for clustering performance.
+   - **Mean Imputation**: The broader range of NMI scores for mean imputation might indicate that it performs well in some scenarios but fails in others, especially as missingness increases. This inconsistent performance can be due to mean imputation’s tendency to underestimate the variance, especially when the data is not normally distributed, leading to clusters that do not reflect the true structure.
+
+3. **Adjusted Rand Index (ARI) Comparison**:
+   - **KNN Imputation**: The decline in ARI for KNN imputation with increased missingness could be due to KNN's reliance on a complete feature space to find the nearest neighbors. As missingness increases, the feature space becomes more sparse, leading to less accurate imputation and clustering.
+   - **Mean Imputation**: The significant drop in ARI at 40% missingness for mean imputation likely indicates that when a substantial amount of data is missing, replacing it with the mean can greatly distort the true cluster boundaries, reducing the similarity between the true and predicted labels.
+   - **Median Imputation**: Median imputation’s better performance in ARI could be because it is less affected by skewed data and extreme values, which are common in real-world datasets. This allows for a more accurate estimation of the cluster centroids, resulting in clusters that are more similar to the true structure of the data.
+
+Overall, the results suggest that median imputation is the most robust to different levels of missingness, maintaining the integrity of the data’s structure and leading to more accurate clustering results. In contrast, KNN and mean imputations are more sensitive to the level of missingness, with their performance degrading as missingness increases. These insights justify the observed results and align with the theoretical understanding of how different imputation methods handle missing data within the K-means clustering context.
+
 # Conclusion
+The systematic investigation into the effect of missingness on the K-means clustering algorithm provides a nuanced understanding of the method's robustness and limitations in real-world scenarios, where incomplete datasets are common. The study's findings are pivotal for several reasons:
+
+- **Insights into Algorithm Sensitivity**: We have learned that the K-means algorithm, which relies on the mean to define cluster centers, is sensitive to missing data. This sensitivity can lead to significant inaccuracies in cluster identification as the missingness level increases, underscoring the importance of addressing data gaps before performing clustering.
+
+- **Evaluation of Imputation Techniques**: The research emphasizes the critical role of imputation techniques in the preprocessing phase. By comparing methods like KNN, mean, and median imputation, we have gained insights into which approaches preserve the integrity of the data's structure and which may introduce bias or reduce variance, consequently affecting the clustering outcomes.
+
+- **Guidance on Data Preprocessing**: The comparative analysis of imputation methods offers practical guidance for data scientists. The robust performance of median imputation across varying levels of missingness suggests that it could be a preferred method for data preprocessing in clustering tasks, especially when dealing with datasets that are prone to outliers or non-normal distributions.
+
+- **Understanding of Missingness Mechanisms**: The differentiation between MCAR, MAR, and MNAR missingness mechanisms and their respective impacts on K-means clustering enriches our understanding of how data may be lost and the subsequent implications for data analysis. This knowledge is crucial for selecting appropriate imputation strategies that are aligned with the nature of the missingness.
+
+- **Implications for Clustering Applications**: For applications that rely on clustering, such as customer segmentation, anomaly detection, and pattern recognition, the insights from this study are invaluable. They inform the preprocessing steps necessary to enhance the reliability and accuracy of the results, which is critical for making informed decisions based on clustering analyses.
+
+- **Framework for Future Research**: Finally, the methodological approach of this study, using a Monte Carlo simulation to systematically evaluate the impact of missingness, provides a reproducible framework for future research. It enables further exploration into other imputation methods, clustering algorithms, or data types, fostering a deeper understanding of data science methods.
+
+In essence, the profound conclusion from this study is that while K-means is a widely used and powerful clustering tool, its performance is notably influenced by the presence and treatment of missing data. Acknowledging and addressing this influence through proper imputation can significantly enhance the accuracy and reliability of the clustering results, enabling more effective data-driven decision-making.
