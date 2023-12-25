@@ -24,7 +24,9 @@ The primary objective of this study is to provide insights into how missing data
   - `dplyr`: For data manipulation.
 
 ## File Structure
-- **SImulation Paper.Rmd**: The main R Markdown file containing the study, code, and documentation.
+- **Simulation Paper.Rmd**: The main R Markdown file containing the study, code, and documentation.
+- **HTML version** : The paper in plain word from the RMD file in html version (prefer reading this version than the pdf one).
+- **PDF version** : Paper in plain word in PDF version.
 
 ## How to Use
 1. Ensure you have R and the necessary libraries installed.
