@@ -7,7 +7,7 @@ Gabriel Jobert
 2023-11-05
 
 ## Description
-This repository contains the R Markdown file and associated resources for a simulation study authored by Gabriel Jobert. The paper focuses on employing a Monte Carlo simulation approach to evaluate the impact of missing data on the performance and stability of various statistical methods.
+This repository contains the R Markdown file and associated resources for a simulation study. The paper focuses on employing a Monte Carlo simulation approach to evaluate the impact of missing data on the performance and stability of various statistical methods.
 
 ### Objective
 The primary objective of this study is to provide insights into how missing data can affect the outcome and reliability of different statistical learning techniques.
